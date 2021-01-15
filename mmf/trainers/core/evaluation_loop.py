@@ -25,7 +25,6 @@ class TrainerEvaluationLoopMixin(ABC):
         with torch.no_grad():
             self.model.eval()
             disable_tqdm = not use_tqdm or not is_master()
-
             while reporter.next_dataset(flush_report=False):
                 dataloader = reporter.get_dataloader()
 
@@ -49,8 +48,8 @@ class TrainerEvaluationLoopMixin(ABC):
                         )
                         combined_report.batch_size += report.batch_size
 
-                    # Each node generates a separate copy of predict JSON from the report,
-                    # which will be used to evaluate dataset-level metrics
+                    # Each node generates a separate copy of predict JSON from the
+                    # report, which will be used to evaluate dataset-level metrics
                     # (such as mAP in object detection or CIDEr in image captioning)
                     # Since `reporter.add_to_report` changes report keys (e.g. scores),
                     # do this after `combined_report.accumulate_tensor_fields_and_loss`
