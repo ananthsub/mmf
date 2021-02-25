@@ -11,6 +11,7 @@ from typing import Any
 import torch
 import torchvision
 from mmf.common.registry import registry
+from mmf.models.frcnn import GeneralizedRCNN
 from mmf.modules.embeddings import ProjectionEmbedding, TextEmbedding
 from mmf.modules.hf_layers import BertModelJit
 from mmf.modules.layers import Identity
@@ -214,6 +215,8 @@ class ImageEncoderFactory(EncoderFactory):
             self.module = TorchvisionResNetImageEncoder(params)
         elif self._type == "detectron2_resnet":
             self.module = Detectron2ResnetImageEncoder(params)
+        elif self._type == "frcnn":
+            self.module = FRCNNImageEncoder(params)
         else:
             raise NotImplementedError("Unknown Image Encoder: %s" % self._type)
 
@@ -336,6 +339,47 @@ class Detectron2ResnetImageEncoder(Encoder):
     def forward(self, x):
         x = self.resnet(x)
         return x["res5"]
+
+
+@registry.register_encoder("frcnn")
+class FRCNNImageEncoder(Encoder):
+    @dataclass
+    class Config(Encoder.Config):
+        name: str = "frcnn"
+        pretrained: bool = True
+        pretrained_path: str = None
+
+    def __init__(self, config: Config, *args, **kwargs):
+        super().__init__()
+        self.config = config
+        # pretrained = config.get("pretrained", False)
+        # pretrained_path = config.get("pretrained_path", None)
+
+        if config.pretrained:
+            self.frcnn = GeneralizedRCNN.from_pretrained(
+                config.pretrained_path, config=config
+            )
+        else:
+            self.frcnn = GeneralizedRCNN(config)
+
+    def forward(
+        self,
+        x,
+        sizes=None,
+        scales_yx=None,
+        padding=None,
+        max_detections=0,
+        return_tensors="pt",
+    ):
+        x = self.frcnn(
+            x,
+            sizes,
+            scales_yx=scales_yx,
+            padding=padding,
+            max_detections=max_detections,
+            return_tensors=return_tensors,
+        )
+        return x
 
 
 class TextEncoderTypes(Enum):

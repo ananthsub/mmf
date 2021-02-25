@@ -1,6 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
 from mmf.datasets.processors.bert_processors import MaskedTokenProcessor
+from mmf.datasets.processors.frcnn_processor import FRCNNPreprocess  # noqa
 from mmf.datasets.processors.image_processors import TorchvisionTransforms
 from mmf.datasets.processors.processors import (
     BaseProcessor,

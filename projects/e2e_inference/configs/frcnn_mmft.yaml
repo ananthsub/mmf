@@ -1,0 +1,170 @@
+model_config:
+  pretrained: true
+  pretrained_path: /checkpoint/vedanuj/mmf_checkpoints/new_features.mmf_transformer.bs64.s1.adam_w.lr5e-05.mu88000.ngpu2/best.ckpt
+  transformer_base: bert-base-uncased
+  training_head_type: classification
+  backend:
+    type: huggingface
+    freeze: false
+    params: {}
+  num_labels: 3129
+  modalities:
+  - type: text
+    key: text
+    position_dim: 512
+    segment_id: 0
+    embedding_dim: 768
+    layer_norm_eps: 1.0e-12
+    hidden_dropout_prob: 0.1
+  - type: image
+    key: image
+    embedding_dim: 2048
+    position_dim: 1
+    segment_id: 1
+    layer_norm_eps: 1.0e-12
+    hidden_dropout_prob: 0.1
+    encoder:
+      type: identity
+      params:
+        in_dim: 2048
+  initializer_range: 0.02
+  initializer_mean: 0.0
+  token_noise_std: 0.01
+  token_noise_mean: 0.0
+  layer_norm_weight_fill: 1.0
+  random_initialize: false
+  freeze_image_encoder: false
+  finetune_lr_multiplier: 1
+  losses:
+  - type: logit_bce
+  model: mmf_transformer
+
+features:
+  image_feature_encodings:
+    type: frcnn
+    params:
+      pretrained: true
+      pretrained_path: ../model.bin
+      model:
+        load_proposals: False
+        device: cpu
+        max_pool: True
+        chkpoint: ''
+        pixel_mean: [102.9801, 115.9465, 122.7717]
+        pixel_std: [1.0, 1.0, 1.0]
+      input:
+        max_size_train: 1333
+        min_size_train: 640
+        max_size_test: 1333
+        min_size_test: 800
+        format: BGR
+      backbone:
+        freeze_at: 2
+      proposal_generator:
+        hidden_channels: 512
+        min_size: 0.0
+      anchor_generator:
+        sizes: [[64, 128, 256, 512]]
+        aspect_ratios: [[0.5, 1.0, 2.0]]
+        angles: [[-90.0, 0.0, 90.0]]
+        offset: 0
+      rpn:
+        batch_size_per_image: 1
+        pre_nms_topk_test: 6000
+        post_nms_topk_test: 300
+        pre_nms_topk_train: 12000
+        post_nms_topk_train: 2000
+        in_features: ['res4']
+        boundary_thresh: -1.0
+        iou_thresholds: [0.3, 0.7]
+        iou_labels: [0.0, -1.0, 1.0]
+        positive_fraction: 0.5
+        bbox_reg_weights: [1.0, 1.0, 1.0, 1.0]
+        smooth_l1_beta: 0.0
+        loss_weight: 1.0
+        nms_thresh: 0.7
+      roi_heads:
+        num_classes: 1600
+        in_features: ['res4']
+        iou_thresholds: [0.5]
+        iou_labels: [0, 1]
+        positive_fraction: 0.25
+        score_thresh_test: 0.2
+        nms_thresh_test: [0.5, 0.6, 0.7]
+        proposal_append_gt: True
+      roi_box_head:
+        bbox_reg_weights: [10.0, 10.0, 5.0, 5.0]
+        smooth_l1_beta: 0.0
+        pooler_resolution: 14
+        pooler_sampling_ratio: 0
+        res5halve: False
+        attr: True
+        num_attrs: 400
+        num_fc: 0
+        fc_dim: 1024
+        num_conv: 0
+        conv_dim: 256
+        cls_agnostic_bbox_reg: False
+      resnets:
+        depth: 101
+        out_features: ['res4']
+        num_groups: 1
+        norm: BN
+        width_per_group: 64
+        stride_in_1x1: True
+        res5_dilation: 1
+        res2_out_channels: 256
+        stem_out_channels: 64
+      solver:
+        lr_scheduler_name: warmupmultisteplr
+        max_iter: 270000
+        base_lr: 0.002
+        momentum: 0.9
+        weight_decay: 0.0001
+        weight_decay_norm: 0.0
+        gamma: 0.1
+        steps: [210000, 250000]
+        warmup_factor: 0.001
+        warmup_iters: 1000
+        warmup_method: linear
+        checkpoint_period: 5000
+        ims_per_batch: 1.0
+        bias_lr_factor: 1.0
+        weight_decay_bias: 0.0
+      size_divisibility: 0
+      pad_value: 0.0
+      min_detections: 0
+      max_detections: 100
+
+
+processors:
+  answer_processor:
+    type: vqa_answer
+    params:
+      num_answers: 3129
+      vocab_file: /private/home/brettallen/.cache/torch/mmf/data/datasets/vqa2/defaults/extras/vocabs/answers_vqa.txt
+      preprocessor:
+        type: simple_word
+        params: {}
+  text_processor:
+    type: bert_tokenizer
+    params:
+      tokenizer_config:
+        type: bert-base-uncased
+        params:
+          do_lower_case: true
+      mask_probability: 0
+      max_seq_length: 128
+  image_processor:
+    type: frcnn_preprocess
+    params:
+      model:
+        device: cpu
+        pixel_mean: [102.9801, 115.9465, 122.7717]
+        pixel_std: [1.0, 1.0, 1.0]
+      input:
+        max_size_test: 1333
+        min_size_test: 800
+        format: BGR
+      size_divisibility: 0
+      pad_value: 0.0
