@@ -1,3 +1,5 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
 from dataclasses import dataclass
@@ -25,6 +27,7 @@ class MLM(BaseTransformerHead):
         hidden_act: str = "gelu"
         ignore_index: int = -1
         loss_name: str = "masked_lm_loss"
+        label_key: Optional[str] = None
 
     def __init__(self, config: Config, *args, **kwargs):
         super().__init__(config, *args, **kwargs)
@@ -42,19 +45,31 @@ class MLM(BaseTransformerHead):
     def forward(
         self,
         sequence_output: torch.Tensor,
-        encoded_layers: List[torch.Tensor],
-        processed_sample_list: Dict[str, Dict[str, torch.Tensor]],
+        encoded_layers: Optional[List[torch.Tensor]] = None,
+        processed_sample_list: Optional[Dict[str, Dict[str, torch.Tensor]]] = None,
     ):
-
         assert (
-            LABEL_KEY in processed_sample_list
-        ), f"MLM pretraining requires {LABEL_KEY} to be in sample list."
-
-        assert (
-            COMBINED_LABEL_KEY in processed_sample_list[LABEL_KEY]
-        ), f"labels for all modalities must be concatenated in {COMBINED_LABEL_KEY}"
+            processed_sample_list is not None
+        ), "MLM head requires 'processed_sample_list' argument"
 
         output_dict = {}
+
+        if self.config.label_key is not None:
+            assert self.config.label_key in processed_sample_list, (
+                f"Didn't find label key {self.config.label_key} in "
+                + "SampleList required by MLM"
+            )
+            masked_labels = processed_sample_list[self.config.label_key]
+        else:
+            assert (
+                LABEL_KEY in processed_sample_list
+            ), f"MLM pretraining requires {LABEL_KEY} to be in sample list."
+
+            assert (
+                COMBINED_LABEL_KEY in processed_sample_list[LABEL_KEY]
+            ), f"labels for all modalities must be concatenated in {COMBINED_LABEL_KEY}"
+
+            masked_labels = processed_sample_list[LABEL_KEY][COMBINED_LABEL_KEY]
 
         masked_labels = processed_sample_list[LABEL_KEY][COMBINED_LABEL_KEY]
 
