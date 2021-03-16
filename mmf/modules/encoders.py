@@ -462,9 +462,10 @@ class TransformerEncoder(Encoder):
             self.config.bert_model_name, **OmegaConf.to_container(self.config)
         )
 
-    def forward(self, *args, **kwargs):
+    def forward(self, *args, return_sequence=False, **kwargs):
         # Only return pooled output
-        return self.module(*args, **kwargs)[1]
+        output = self.module(*args, **kwargs)
+        return output[0] if return_sequence else output[1]
 
 
 class MultiModalEncoderBase(Encoder):
