@@ -1,6 +1,6 @@
 model_config:
   pretrained: true
-  pretrained_path: /checkpoint/vedanuj/mmf_checkpoints/new_features.mmf_transformer.bs64.s1.adam_w.lr5e-05.mu88000.ngpu2/best.ckpt
+  pretrained_path: /checkpoint/brettallen/mmft/best_try.ckpt
   transformer_base: bert-base-uncased
   training_head_type: classification
   backend:
@@ -37,6 +37,12 @@ model_config:
   finetune_lr_multiplier: 1
   losses:
   - type: logit_bce
+  heads:
+    - type: mlp
+      freeze: false
+      lr_multiplier: 1.0
+      hidden_size: 768
+      num_labels: ${model_config.num_labels}
   model: mmf_transformer
 
 features:

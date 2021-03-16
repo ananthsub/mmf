@@ -3,14 +3,14 @@
 import argparse
 
 import numpy as np
+import omegaconf
 import requests
 import torch
-from mmf.common.registry import registry
+from mmf.common.registry import registry  # noqa
 from mmf.common.sample import Sample, SampleList
 from mmf.utils.build import build_encoder, build_model, build_processors
 from mmf.utils.checkpoint import load_pretrained_model
 from mmf.utils.general import get_current_device
-from omegaconf import OmegaConf
 from PIL import Image
 
 
@@ -27,13 +27,13 @@ class Inference:
         return parser
 
     def _build_model(self):
-        self.config = OmegaConf.load(self.args.config)
+        self.config = omegaconf.OmegaConf.load(self.args.config)
         processor = build_processors(self.config.processors)
         feature_extractor = build_encoder(self.config.features.image_feature_encodings)
         if self.config.model_config.pretrained:
             state_dict = load_pretrained_model(self.config.model_config.pretrained_path)
             # adding this line breaks the visualbert use case
-            registry.register("config", state_dict["full_config"])
+            # registry.register("config", state_dict["full_config"])
             model = build_model(self.config.model_config)
             model.load_state_dict(state_dict["checkpoint"])
         else:
@@ -65,7 +65,7 @@ class Inference:
                 return_tensors="pt",
             )
 
-            image_output = image_output["roi_features"][0]
+            image_output = image_output[0]
         else:
             image_preprocessed = self.processor["image_processor"](img)
             image_output = self.feature_extractor(image_preprocessed)
